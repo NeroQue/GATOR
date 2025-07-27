@@ -63,7 +63,27 @@ func main() {
 	if err != nil {
 		log.Fatalf("error registering command: %v", err)
 	}
-	err = cmds.register("agg", HandlerAgg)
+	err = cmds.register("agg", handlerAgg)
+	if err != nil {
+		log.Fatalf("error registering command: %v", err)
+	}
+	err = cmds.register("addfeed", middlewareLoggedIn(handlerAddFeed))
+	if err != nil {
+		log.Fatalf("error registering command: %v", err)
+	}
+	err = cmds.register("feeds", handlerListFeeds)
+	if err != nil {
+		log.Fatalf("error registering command: %v", err)
+	}
+	err = cmds.register("follow", middlewareLoggedIn(handlerFollowFeed))
+	if err != nil {
+		log.Fatalf("error registering command: %v", err)
+	}
+	err = cmds.register("following", middlewareLoggedIn(handlerFollowingFeedsByUser))
+	if err != nil {
+		log.Fatalf("error registering command: %v", err)
+	}
+	err = cmds.register("unfollow", middlewareLoggedIn(handlerUnfollowFeed))
 	if err != nil {
 		log.Fatalf("error registering command: %v", err)
 	}

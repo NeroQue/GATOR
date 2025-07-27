@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-func HandlerAgg(s *state, cmd command) error {
+func handlerAgg(s *state, cmd command) error {
 	//if cmd.Args == nil || len(cmd.Args) == 0 {
 	//	return fmt.Errorf("feed command requires a feed URL")
 	//}
