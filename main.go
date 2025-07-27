@@ -1,15 +1,34 @@
 package main
 
 import (
+	"database/sql"
+	"github.com/NeroQue/GATOR/internal/database"
+	_ "github.com/lib/pq"
+)
+import (
 	"fmt"
-	"github.com/NeroQue/GATOR/internal/commands"
 	"github.com/NeroQue/GATOR/internal/config"
+	"github.com/joho/godotenv"
 	"os"
 
 	"log"
 )
 
+type state struct {
+	db  *database.Queries
+	cfg *config.Config
+}
+
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+	dbURL := os.Getenv("DB_CONNECTION_STRING")
+	db, err := sql.Open("postgres", dbURL)
+
+	dbQueries := database.New(db)
+
 	if len(os.Args) < 2 {
 		fmt.Fprintf(os.Stderr, "error: not enough arguments\n")
 		os.Exit(1)
@@ -19,25 +38,41 @@ func main() {
 	if err != nil {
 		log.Fatalf("error reading config: %v", err)
 	}
-	state := &commands.State{
-		CFG: &cfg,
+	cfg.DBURL = dbURL
+	programState := &state{
+		db:  dbQueries,
+		cfg: &cfg,
 	}
 
-	cmds := commands.Commands{
-		Commands: make(map[string]func(*commands.State, commands.Command) error),
+	cmds := commands{
+		registeredCommands: make(map[string]func(*state, command) error),
 	}
-	err = cmds.Register("login", commands.HandlerLogin)
+	err = cmds.register("login", handlerLogin)
+	if err != nil {
+		log.Fatalf("error registering command: %v", err)
+	}
+	err = cmds.register("register", handlerRegister)
+	if err != nil {
+		log.Fatalf("error registering command: %v", err)
+	}
+	err = cmds.register("reset", HandlerReset)
+	if err != nil {
+		log.Fatalf("error registering command: %v", err)
+	}
+	err = cmds.register("users", handlerListUsers)
+	if err != nil {
+		log.Fatalf("error registering command: %v", err)
+	}
+	err = cmds.register("agg", HandlerAgg)
 	if err != nil {
 		log.Fatalf("error registering command: %v", err)
 	}
 
-	cmd := commands.Command{
-		Name: os.Args[1],
-		Args: os.Args[2:],
-	}
+	cmdName := os.Args[1]
+	cmdArgs := os.Args[2:]
 
-	if err := cmds.Run(state, cmd); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+	err = cmds.run(programState, command{Name: cmdName, Args: cmdArgs})
+	if err != nil {
+		log.Fatal(err)
 	}
 }
