@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"github.com/NeroQue/GATOR/internal/database"
+	"github.com/google/uuid"
 	"time"
 )
 
@@ -39,7 +42,36 @@ func scrapeFeeds(s *state) error {
 		return err
 	}
 	for _, feedItem := range feed.Channel.Item {
-		fmt.Printf("%+v\n", feedItem.Title)
+		pubDate, err := time.Parse(time.RFC1123Z, feedItem.PubDate)
+		pubDateSQL := sql.NullTime{Valid: false}
+
+		if err == nil {
+			pubDateSQL = sql.NullTime{
+				Time:  pubDate,
+				Valid: true,
+			}
+		}
+
+		_, err = s.db.CreatePost(context.Background(), database.CreatePostParams{
+			ID:          uuid.New(),
+			FeedID:      nextToFetch.ID,
+			Title:       feedItem.Title,
+			Description: sql.NullString{String: feedItem.Description},
+			Url:         feedItem.Link,
+			PublishedAt: pubDateSQL,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		})
+		if err != nil {
+			if err.Error() == "pq: duplicate key value violates unique constraint \"posts_url_key\"" {
+				fmt.Printf("Post already exists: %s\n", feedItem.Link)
+				continue
+			} else {
+				fmt.Printf("Error creating post %s: %v\n", feedItem.Link, err)
+			}
+		} else {
+			fmt.Printf("Post created: %s\n", feedItem.Link)
+		}
 	}
 	return nil
 }

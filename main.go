@@ -87,6 +87,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("error registering command: %v", err)
 	}
+	err = cmds.register("browse", HandlerBrowse)
+	if err != nil {
+		log.Fatalf("error registering command: %v", err)
+	}
 
 	cmdName := os.Args[1]
 	cmdArgs := os.Args[2:]
