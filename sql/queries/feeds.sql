@@ -19,3 +19,14 @@ Select * from feeds where id = $1;
 
 -- name: GetFeedByURL :one
 select * from feeds where url = $1;
+
+
+-- name: MarkFeedFetched :exec
+update feeds
+set last_fetched_at = now(), updated_at = now()
+where id = $1;
+
+-- name: GetNextFeedToFetch :one
+SELECT * FROM feeds
+ORDER BY last_fetched_at NULLS FIRST
+LIMIT 1;
